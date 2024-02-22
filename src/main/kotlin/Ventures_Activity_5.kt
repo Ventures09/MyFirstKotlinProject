@@ -1,6 +1,6 @@
 package org.example.src.main.kotlin
 
-data class Student(val name: String, val Id: String, val course: String)
+data class student (val name: String, val Id: String, val course: String)
 fun main() {
 
     val english = listOf("ENG1", "ENG2", "ENG3", "ENG4")
@@ -19,7 +19,7 @@ fun main() {
     println("Enter student's Course")
     var studCourse = readLine().toString().toUpperCase()
 
-    var student = Student("studName", "studId", "studCourse")
+    var student = student("studName", "studId", "studCourse")
 
 
     println("---------------------------------------------")
