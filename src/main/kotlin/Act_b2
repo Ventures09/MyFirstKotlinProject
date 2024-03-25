@@ -1,0 +1,266 @@
+import java.util.logging.Logger
+
+class GroceryCart {
+    val logger = Logger.getLogger("GroceryCart")
+
+    val itemsAvailable = mutableMapOf(
+        "APPLE" to Pair(500, 50.0),
+        "BANANA" to Pair(400, 40.0),
+        "GRAPES" to Pair(300, 30.0),
+        "WATERMELON" to Pair(200, 20.0),
+        "MANGO" to Pair(100, 10.0)
+    )
+
+    val cart = mutableMapOf<String, MutableMap<String, Any>>()
+
+    fun addItem(itemName: String, quantity: Int) {
+        if (itemsAvailable.containsKey(itemName)) {
+            val (availableQuantity, price) = itemsAvailable[itemName]!!
+            if (quantity > 0 && quantity <= availableQuantity) {
+                if (cart.containsKey(itemName)) {
+                    cart[itemName]?.let { item ->
+                        item["quantity"] = item["quantity"] as Int + quantity
+                    }
+                } else {
+                    cart[itemName] = mutableMapOf("quantity" to quantity, "pricePerUnit" to price)
+                }
+                println("$quantity $itemName(s) added to the cart.")
+                itemsAvailable[itemName] = Pair(availableQuantity - quantity, price)
+            } else {
+                logger.warning("Invalid quantity for $itemName")
+            }
+        } else {
+            println("$itemName is not available for purchase.")
+        }
+    }
+
+    fun calculateTotalCost(): Double {
+        var totalCost = 0.0
+        for ((_, item) in cart) {
+            val quantity = item["quantity"] as Int
+            val pricePerUnit = item["pricePerUnit"] as Double
+            totalCost += quantity * pricePerUnit
+        }
+        return totalCost
+    }
+
+    fun listItemsBought(): List<Pair<String, Int>> {
+        val itemsBought = mutableListOf<Pair<String, Int>>()
+        for ((itemName, item) in cart) {
+            val quantity = item["quantity"] as Int
+            itemsBought.add(Pair(itemName, quantity))
+        }
+        return itemsBought
+    }
+}
+
+fun main() {
+//Albit,Anfred
+//Amora, Cris Aljon
+//Caupit, Ken
+//Ventures, Joseph
+
+
+
+    val cashier = GroceryCart()
+    var itemCount = 1
+    var paymentReceived = false
+    val deletedItems = mutableListOf<Triple<String, Int, Double>>()
+    val soldItems = mutableListOf<Triple<String, Int, Double>>() // Track sold items
+
+    do {
+        println("\nPlease select menu\n[1]Add Item" +
+                "\n[2]Pay here\n[3]Display All Available Items\n[4]Display All List of Items bought\n" +
+                "[5]Select Item to delete\n[6]Display All deleted Items\n" +
+                "[7]Display All sold Items\n[8]Exit")
+        print("\nEnter your choice:")
+        val select: Int = readLine()?.toIntOrNull() ?: 7
+
+        when (select) {
+            1 -> {
+                if (cashier.itemsAvailable.isEmpty()) {
+                    println("ALL ITEMS HAS BEEN SOLD...")
+                } else {
+
+                    println("\nAVAILABLE ITEMS FOR PURCHASE:")
+                    cashier.itemsAvailable.forEach { (item, details) ->
+                        val (quantity, price) = details
+                        println("$item: Quantity - $quantity, Price Per Unit - $$price")
+                    }
+
+                    var itemBought: String? = null
+                    var quantity: Int? = null
+                    var availableQuantity: Int = 0 // Initialize availableQuantity
+
+
+                    print("\nEnter item name to add: ")
+                    itemBought = readLine()?.toUpperCase()
+                    if (!cashier.itemsAvailable.containsKey(itemBought)) {
+                        logger.warning("$itemBought is not available. Please choose from the available items.")
+                        continue
+                    }
+
+                    availableQuantity = cashier.itemsAvailable[itemBought]!!.first // Update availableQuantity
+
+                    if (availableQuantity == 0) {
+                        logger.info("$itemBought is out of stock.")
+                        continue
+                    }
+                    do {
+                        print("Enter quantity for $itemBought (Available: $availableQuantity): ")
+                        quantity = readLine()?.toIntOrNull()?: 0
+                        if (quantity > availableQuantity) {
+                            cashier.logger.warning("Quantity of this item is only $availableQuantity. Please enter $availableQuantity or below.")
+                            println()
+                        } else if (quantity <= 0) {
+                            cashier.logger.warning("Invalid quantity. Please enter a quantity greater than 0.")
+                            continue
+                        } else {
+                            cashier.addItem(itemBought!!, quantity)
+                            println("Items Successfully Added to cart!!..")
+                            // If the available quantity becomes 0, mark the item as out of stock
+                            if (availableQuantity == quantity) {
+                                logger.info("$itemBought is now out of stock.")
+                            }
+                        }
+                    } while (quantity!! > availableQuantity || quantity <= 0)
+                }
+            }
+            2 -> {
+                val totalCost = cashier.calculateTotalCost()
+                if (!paymentReceived && totalCost > 0) { // Check if payment hasn't been received and there are items to pay for
+                    println("\nTotal amount to pay: $$totalCost")
+                    print("Enter amount to pay: ")
+                    val amountPaid: Double = readLine()?.toDoubleOrNull()?: 0.0
+                    if (amountPaid >= totalCost) {
+                        println("Payment received.")
+                        paymentReceived = true
+
+                        // Move items from cart to soldItems list
+                        soldItems.addAll(cashier.listItemsBought().map { Triple(it.first, it.second, it.second * (cashier.cart[it.first]?.get("pricePerUnit") as Double)) })
+
+                        // Clear the cart after payment
+                        cashier.cart.clear()
+
+                        // Remove items with 0 quantity from itemsAvailable
+                        cashier.itemsAvailable.entries.removeIf { (_, item) -> item.first == 0 }
+
+                        var change = amountPaid - totalCost
+                        if(change == 0.0){
+                            println("Thank your for paying!!")
+                        }else {
+                            println("Change: $change\nThank you for paying!!")
+                        }
+                    } else {
+                        logger.warning("Insufficient amount paid. Payment not accepted.")
+                    }
+                } else {
+                    println("No items to pay for or payment has already been received.")
+                }
+            }
+            3 -> {
+                if (cashier.itemsAvailable.isEmpty()) {
+                    println("ALL ITEMS HAS BEEN SOLD...")
+                } else {
+                    println("\nAVAILABLE ITEMS FOR PURCHASE:")
+                    cashier.itemsAvailable.forEach { (item, details) ->
+                        val (quantity, price) = details
+                        println("$item: Quantity - $quantity, Price Per Unit - $$price")
+                    }
+                }
+            }
+            4 -> {
+                if (cashier.listItemsBought().isEmpty()) {
+                    print("There are no items bought.\n")
+                } else {
+                    println("\nLIST OF ALL ITEMS BOUGHT:")
+                    var totalCartCost = 0.0
+                    for (item in cashier.listItemsBought()) {
+                        val itemName = item.first
+                        val quantity = item.second
+                        val pricePerUnit = cashier.cart[itemName]?.get("pricePerUnit") as Double
+                        val totalItemCost = quantity * pricePerUnit
+                        totalCartCost += totalItemCost // Accumulate total cart cost
+                        println(
+                            "Item $itemCount: $itemName, Quantity: $quantity, Total Price Per Unit: $$pricePerUnit, Total Cost: $${
+                                "%.2f".format(
+                                    totalItemCost
+                                )
+                            }"
+                        )
+                        itemCount++
+                    }
+                    // Reset item count for next display
+                    itemCount = 1
+                    // Calculating and printing total cost for all items
+                    val totalCost = cashier.calculateTotalCost()
+                    println("\nTotal cost of all items: $${"%.2f".format(totalCost)}")
+                }
+            }
+            5 -> {
+                println("\nEnter the item number to delete:")
+                val deleteItemNumber: Int = readLine()?.toIntOrNull() ?: 0
+                val itemsBought = cashier.listItemsBought()
+                if (deleteItemNumber in 1..itemsBought.size) {
+                    val itemToDelete = itemsBought[deleteItemNumber - 1].first
+                    val quantity = itemsBought[deleteItemNumber - 1].second
+                    val pricePerUnit = cashier.cart[itemToDelete]?.get("pricePerUnit") as Double
+                    val totalCost = quantity * pricePerUnit
+                    // Updating the quantity in itemsAvailable map
+                    val (availableQuantity, _) = cashier.itemsAvailable[itemToDelete]!!
+                    cashier.itemsAvailable[itemToDelete] = Pair(availableQuantity + quantity, pricePerUnit)
+                    println("Deleting $itemToDelete...")
+                    deletedItems.add(Triple(itemToDelete, quantity, totalCost))
+                    cashier.cart.remove(itemToDelete)
+                    println("$itemToDelete deleted successfully")
+                } else {
+                    logger.warning("Invalid item number. Nothing deleted.")
+                }
+            }
+            6 -> {
+                if (deletedItems.isEmpty()) {
+                    println("There are no deleted items.\n")
+                } else {
+                    println("\nList of all deleted items:")
+                    deletedItems.forEachIndexed { index, (itemName, quantity, totalCost) ->
+                        val pricePerUnit = totalCost / quantity // Calculate price per unit for the deleted item
+                        println(
+                            "Deleted Item ${index + 1}: $itemName, Quantity: $quantity, Total Price Per Unit: $$pricePerUnit, Total Cost: $${
+                                "%.2f".format(
+                                    totalCost
+                                )
+                            }"
+                        )
+                    }
+                }
+            }
+            7 -> {
+                if (soldItems.isEmpty()) {
+                    println("There are no sold items.\n")
+                } else {
+                    println("\nList of all sold items:")
+                    var totalSoldCost = 0.0
+                    soldItems.forEachIndexed { index, (itemName, quantity, totalCost) ->
+                        val pricePerUnit = totalCost / quantity // Calculate price per unit for the sold item
+                        println(
+                            "Sold Item ${index + 1}: $itemName, Quantity: $quantity, Total Price Per Unit: $$pricePerUnit, Total Cost: $${
+                                "%.2f".format(
+                                    totalCost
+                                )
+                            }"
+                        )
+                        totalSoldCost += totalCost
+                    }
+                    println("\nTotal cost of all sold items: $${"%.2f".format(totalSoldCost)}")
+                }
+            }
+            8 -> {
+                println("\nExiting program...")
+                System.exit(0)
+            }
+            else -> {
+                println("\nInvalid Choice!!")
+            }
+        }
+    } while (!paymentReceived || paymentReceived)
+}
