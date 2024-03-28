@@ -1,0 +1,200 @@
+import mu.KotlinLogging
+class Logger {
+    val logger = KotlinLogging.logger {}
+}
+open class MediaItem(val title: String, val artist: String) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is MediaItem) return false
+        return title == other.title && artist == other.artist
+    }
+
+    override fun hashCode(): Int {
+        var result = title.hashCode()
+        result = 31 * result + artist.hashCode()
+        return result
+    }
+}
+
+class Song(title: String, artist: String) : MediaItem(title, artist)
+
+class Playlist {
+    private val mediaItems: MutableList<MediaItem> = mutableListOf()
+
+    fun addMediaItem(item: MediaItem) {
+        val trimmedTitle = item.title
+        val trimmedArtist = item.artist
+        val newItem = MediaItem(trimmedTitle, trimmedArtist)
+        if (!mediaItems.contains(newItem)) {
+            mediaItems.add(newItem)
+            logger.info { "Saving songs...Please wait...." }
+            println("$trimmedTitle by $trimmedArtist is added to the playlist.")
+        } else {
+            println("$trimmedTitle is already added to the playlist.")
+        }
+    }
+
+    fun changeMediaItem(oldTitle: String, oldArtist: String, newTitle: String, newArtist: String) {
+        val trimmedOldTitle = oldTitle.trim().replace("\\s+".toRegex(), "")
+        val trimmedOldArtist = oldArtist.trim().replace("\\s+".toRegex(), "")
+        val trimmedNewTitle = newTitle.trim().replace("\\s+".toRegex(), "")
+        val trimmedNewArtist = newArtist.trim().replace("\\s+".toRegex(), "")
+        val oldItem = mediaItems.find { it.title.replace("\\s+".toRegex(), "") == trimmedOldTitle && it.artist.replace("\\s+".toRegex(), "") == trimmedOldArtist }
+        val newItem = MediaItem(trimmedNewTitle, trimmedNewArtist)
+        if (oldItem != null) {
+            if (mediaItems.none { it == newItem }) {
+                mediaItems[mediaItems.indexOf(oldItem)] = newItem
+                logger.info { "Please wait to change...." }
+                println("$trimmedOldTitle by $trimmedOldArtist is changed to $trimmedNewTitle by $trimmedNewArtist.")
+            } else {
+                println("$trimmedNewTitle by $trimmedNewArtist is already in the playlist.")
+            }
+        } else {
+            println("$trimmedOldTitle by $trimmedOldArtist is not found in the playlist.")
+        }
+    }
+
+    fun removeMediaItem(item: MediaItem) {
+        val trimmedTitle = item.title.trim().replace("\\s+".toRegex(), "")
+        val trimmedArtist = item.artist.trim().replace("\\s+".toRegex(), "")
+        val foundItem = mediaItems.find { it.title.replace("\\s+".toRegex(), "") == trimmedTitle && it.artist.replace("\\s+".toRegex(), "") == trimmedArtist }
+        if (foundItem != null) {
+            print("Are you sure you want to remove ${foundItem.title} by ${foundItem.artist}? Press 1 for Yes, 2 for No:")
+            val input = readLine()?.toIntOrNull() ?: 0
+            if (input == 1) {
+                mediaItems.remove(foundItem)
+                logger.info { "Please wait removing your song...." }
+                println("${foundItem.title} by ${foundItem.artist} is removed from the playlist.")
+            }
+        } else {
+            println("$trimmedTitle by $trimmedArtist is not found in the playlist.")
+        }
+    }
+
+    fun searchSong(song: String) {
+        val trimmedSong = song.trim().replace("\\s+".toRegex(), "")
+        val item = mediaItems.find { it.title.replace("\\s+".toRegex(), "") == trimmedSong }
+        if (item != null) {
+            println("$song is found in the playlist.")
+        } else {
+            println("$song is not found in the playlist.")
+        }
+    }
+
+    fun searchByArtist(artist: String) {
+        val trimmedArtist = artist.trim().replace("\\s+".toRegex(), "")
+        val count = mediaItems.count { it.artist.replace("\\s+".toRegex(), "") == trimmedArtist }
+        println("$artist is found in the playlist with $count songs.")
+    }
+    fun clearPlaylist() {
+        mediaItems.clear()
+        logger.info("Playlist is cleared.")
+    }
+
+    fun displayAllMediaItems() {
+        if (mediaItems.isNotEmpty()) {
+            println("\n****** YOUR NAME'S PLAYLIST******")
+            println("\nMedia items in the playlist:")
+            mediaItems.forEachIndexed { index, mediaItem ->
+                println("${index + 1}. ${mediaItem.title} by ${mediaItem.artist}")
+            }
+        } else {
+           logger.info("The playlist is empty.")
+        }
+    }
+
+    fun displaySongsByArtist(artist: String) {
+        val trimmedArtist = artist.trim().replace("\\s+".toRegex(), "")
+        val songsByArtist = mediaItems.filter { it.artist.replace("\\s+".toRegex(), "") == trimmedArtist }
+        if (songsByArtist.isNotEmpty()) {
+            println("Songs by $artist in the playlist:")
+            songsByArtist.forEachIndexed { index, mediaItem ->
+                println("${index + 1}. ${mediaItem.title}")
+            }
+        } else {
+            println("No songs by $artist found in the playlist.")
+        }
+    }
+    fun totalNumberOfSongs(): Int {
+        return mediaItems.size
+    }
+}
+
+fun main() {
+    val playlist = Playlist()
+
+//Albit, Anfred
+//Amora, Cris Aljon
+//Caupit, Ken
+//Ventures, Joseph
+
+    do {
+        println("\n****** YOUR NAME'S PLAYLIST*****")
+        println("1. Add new song")
+        println("2. Change song")
+        println("3. Remove a song")
+        println("4. Search for a song")
+        println("5. Search for an artist song")
+        println("6. Empty playlist")
+        println("7. Display all songs")
+        println("8. Display songs by artist")
+        println("9. Display total number of songs")
+        println("10. Exit")
+
+        print("\nEnter your choice:")
+        val choice = readLine()?.toIntOrNull() ?: continue
+
+        when (choice) {
+            1 -> {
+                print("\nEnter song name: ")
+                val songTitle = readLine() ?: ""
+                print("Enter artist name: ")
+                val artistName = readLine() ?: ""
+                val song = Song(songTitle, artistName)
+                playlist.addMediaItem(song)
+            }
+            2 -> {
+                print("\nEnter old song name: ")
+                val oldTitle = readLine() ?: ""
+                print("Enter old artist name: ")
+                val oldArtist = readLine() ?: ""
+                print("\nEnter new song name: ")
+                val newTitle = readLine() ?: ""
+                print("Enter new artist name: ")
+                val newArtist = readLine() ?: ""
+                playlist.changeMediaItem(oldTitle, oldArtist, newTitle, newArtist)
+            }
+            3 -> {
+                print("Enter song name to remove: ")
+                val songTitle = readLine() ?: ""
+                print("Enter artist name: ")
+                val artistName = readLine() ?: ""
+                val song = MediaItem(songTitle, artistName)
+                playlist.removeMediaItem(song)
+            }
+            4 -> {
+                print("Enter song name to search: ")
+                val songTitle = readLine() ?: ""
+                playlist.searchSong(songTitle)
+            }
+            5 -> {
+                print("Enter artist name to search: ")
+                val artistName = readLine() ?: ""
+                playlist.searchByArtist(artistName)
+            }
+            6 -> playlist.clearPlaylist()
+            7 -> playlist.displayAllMediaItems()
+            8 -> {
+                print("Enter artist name: ")
+                val artistName = readLine() ?: ""
+                playlist.displaySongsByArtist(artistName)
+            }
+            9 -> println("Total number of songs in the playlist: ${playlist.totalNumberOfSongs()}")
+            10 -> return
+            else -> {
+                logger.warning { "Please select between 1 to 10...." }
+                logger.warning("Invalid choice.")
+            }
+        }
+    } while (true)
+}
